@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuebecInsider.Api", "backend\src\QuebecInsider.Api\QuebecInsider.Api.csproj", "{4AB02DC4-C93E-4C91-8BC1-4A9596B4DF85}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuebecInsider.Api.Tests", "backend\tests\QuebecInsider.Api.Tests\QuebecInsider.Api.Tests.csproj", "{3F63C7AF-E323-4550-8B12-2C39A84A948E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4AB02DC4-C93E-4C91-8BC1-4A9596B4DF85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AB02DC4-C93E-4C91-8BC1-4A9596B4DF85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AB02DC4-C93E-4C91-8BC1-4A9596B4DF85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AB02DC4-C93E-4C91-8BC1-4A9596B4DF85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F63C7AF-E323-4550-8B12-2C39A84A948E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F63C7AF-E323-4550-8B12-2C39A84A948E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F63C7AF-E323-4550-8B12-2C39A84A948E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F63C7AF-E323-4550-8B12-2C39A84A948E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

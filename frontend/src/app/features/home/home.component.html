@@ -1,0 +1,84 @@
+<main>
+  <section class="hero">
+    <div class="hero-content">
+      <p class="eyebrow">QuébecInsider</p>
+      <h1>{{ text().heroTitle }}</h1>
+      <p>{{ text().heroSubtitle }}</p>
+      <div class="hero-actions">
+        <a [routerLink]="['/', lang()]" fragment="featured">{{ text().primaryCta }}</a>
+        <a [routerLink]="['/', lang(), lang() === 'fr' ? 'bons-plans' : 'deals']">{{ text().secondaryCta }}</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="content-grid" id="featured">
+    <div class="featured">
+      <div class="section-heading">
+        <span>⚜</span>
+        <h2>{{ text().missed }}</h2>
+      </div>
+      @if (loading()) {
+        <p class="state-message">Chargement des articles...</p>
+      }
+      @if (error()) {
+        <p class="state-message error">Impossible de charger les articles depuis l'API. Vérifiez que le backend répond sur http://localhost:5000.</p>
+      }
+      @if (articles()[0]; as lead) {
+        <article class="lead-card">
+          <img [src]="lead.imageUrl" [alt]="lead.title" />
+          <div>
+            <span class="category">{{ lead.categoryName }}</span>
+            <h3><a [routerLink]="articleUrl(lead)">{{ lead.title }}</a></h3>
+            <p>{{ lead.description }}</p>
+            <small>{{ lead.publishedAt | date:'longDate':dateTimezone:text().culture }} · {{ lead.readingMinutes }} {{ text().minutes }} · {{ lead.authorName }}</small>
+          </div>
+        </article>
+      }
+      <div class="article-list">
+        @for (article of articles().slice(1); track article.id) {
+          <article class="article-card">
+            <img [src]="article.imageUrl" [alt]="article.title" />
+            <div>
+              <span class="category">{{ article.categoryName }}</span>
+              <h3><a [routerLink]="articleUrl(article)">{{ article.title }}</a></h3>
+              <p>{{ article.description }}</p>
+              <small>{{ article.readingMinutes }} {{ text().minutes }} · {{ article.authorName }}</small>
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <h2>🔥 {{ text().trending }}</h2>
+      <ol>
+        @for (article of trending(); track article.id) {
+          <li><a [routerLink]="articleUrl(article)">{{ article.title }}</a></li>
+        }
+      </ol>
+      <qi-insider-tip
+        [title]="text().tipTitle"
+        [tip]="trending()[0]?.insiderTip || (lang() === 'fr'
+          ? 'Certaines bibliothèques municipales donnent gratuitement accès à des plateformes numériques normalement payantes.'
+          : 'Some municipal libraries include free access to digital platforms that usually cost money.')"
+      />
+    </aside>
+  </section>
+
+  <section class="categories">
+    <div class="section-heading">
+      <span>⚜</span>
+      <h2>{{ text().categories }}</h2>
+    </div>
+    <div class="category-grid">
+      @for (category of categories(); track category.key) {
+        <a class="category-card" [routerLink]="['/', lang(), category.slug]">
+          <strong>{{ category.name }}</strong>
+          <p>{{ category.description }}</p>
+        </a>
+      }
+    </div>
+  </section>
+
+  <qi-newsletter [lang]="lang()" />
+</main>

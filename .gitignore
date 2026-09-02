@@ -1,0 +1,67 @@
+# ==========================================
+# Operating System Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==========================================
+# .NET / C# (ASP.NET Core, EF Core)
+# ==========================================
+**/[Bb]in/
+**/[Oo]bj/
+[Tt]est[Rr]esults/
+.dotnet/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vs/
+.idea/
+*.DotSettings.user
+_ReSharper*/
+
+# Visual Studio / VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Local database / secrets / log files
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# Node / Angular / Frontend
+# ==========================================
+**/node_modules/
+**/dist/
+**/.angular/
+**/.nx/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing & Coverage
+coverage/
+*.lcov
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
