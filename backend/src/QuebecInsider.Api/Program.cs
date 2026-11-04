@@ -27,7 +27,11 @@ builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("LocalFrontend", policy =>
-        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+        policy.SetIsOriginAllowed(origin =>
+                Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+                (uri.Host == "localhost" ||
+                 uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase) ||
+                 uri.Host.EndsWith(".azurecontainerapps.io", StringComparison.OrdinalIgnoreCase)))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());

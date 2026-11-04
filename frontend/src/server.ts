@@ -7,9 +7,29 @@ const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+const apiBaseUrl = (process.env['API_URL'] || 'http://localhost:5000').replace(/\/+$/, '');
+
+app.use('/api', async (req, res, next) => {
+  try {
+    const targetUrl = `${apiBaseUrl}${req.originalUrl}`;
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers: { Accept: 'application/json' }
+    });
+    res.status(response.status);
+    const contentType = response.headers.get('content-type');
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
+    const body = await response.text();
+    res.send(body);
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use(express.static(browserDistFolder, { maxAge: '1y', index: false, redirect: false }));
-app.use('/**', (req, res, next) => {
+app.use((req, res, next) => {
   angularApp.handle(req).then((response) => response ? writeResponseToNodeResponse(response, res) : next()).catch(next);
 });
 
