@@ -7,7 +7,10 @@ const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
-const apiBaseUrl = (process.env['API_URL'] || 'http://localhost:5000').replace(/\/+$/, '');
+const apiBaseUrl = (
+  process.env['API_URL'] ||
+  'https://ca-quebecinsider-api.delightfulbeach-019eb41d.westus.azurecontainerapps.io'
+).replace(/\/+$/, '');
 
 app.use('/api', async (req, res, next) => {
   if (req.path === '/ssr' || req.originalUrl.startsWith('/api/ssr')) {

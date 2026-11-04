@@ -2,8 +2,8 @@
   "outputDirectory": "dist/quebec-insider-frontend/browser",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/ssr"
+      "source": "/api/:path*",
+      "destination": "https://ca-quebecinsider-api.delightfulbeach-019eb41d.westus.azurecontainerapps.io/api/:path*"
     },
     {
       "source": "/(.*)",
