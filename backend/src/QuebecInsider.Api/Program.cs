@@ -3,6 +3,10 @@ using QuebecInsider.Api.Data;
 using QuebecInsider.Api.Dtos;
 using QuebecInsider.Api.Hubs;
 using QuebecInsider.Api.Services;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +19,7 @@ builder.Services.AddDbContext<QuebecInsiderDbContext>(options =>
     }
     else
     {
-        options.UseSqlServer(connection);
+        options.UseNpgsql(connection);
     }
 });
 
@@ -31,8 +35,47 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<QuebecInsiderMetrics>();
+
+
+
+// 1. Configurer OpenTelemetry
+var otel = builder.Services.AddOpenTelemetry();
+otel.ConfigureResource(resource => resource
+    .AddService(serviceName: "QuebecInsider.Api", serviceVersion: "1.0.0"));
+// 2. Métriques (Prometheus + Compteurs personnalisés)
+otel.WithMetrics(metrics =>
+{
+    metrics
+        .AddAspNetCoreInstrumentation() // Requêtes HTTP, latence, codes 200/404/500
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()    // CPU, GC, mémoire .NET
+        .AddMeter("QuebecInsider.Metrics") // Ton compteur métier custom (voir étape 4)
+        .AddPrometheusExporter();       // Active l'export au format Prometheus
+});
+// 3. Traces distribuées (HTTP -> ArticleService -> EF Core SQL)
+otel.WithTracing(tracing =>
+{
+    tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation() // Trace les requêtes SQL de QuebecInsiderDbContext
+        .AddSource("QuebecInsider.Tracing");
+});
+// 4. Brancher Azure Monitor si la Connection String est présente dans appsettings / variables d'env
+var azureMonitorConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+if (!string.IsNullOrWhiteSpace(azureMonitorConnectionString))
+{
+    otel.UseAzureMonitor(options =>
+    {
+        options.ConnectionString = azureMonitorConnectionString;
+    });
+}
 
 var app = builder.Build();
+
+// Expose http://localhost:5295/metrics pour Prometheus
+app.MapPrometheusScrapingEndpoint();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {

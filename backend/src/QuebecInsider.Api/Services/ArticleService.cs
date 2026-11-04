@@ -5,7 +5,7 @@ using QuebecInsider.Api.Dtos;
 
 namespace QuebecInsider.Api.Services;
 
-public sealed class ArticleService(QuebecInsiderDbContext db) : IArticleService
+public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetrics? metrics = null) : IArticleService
 {
     public async Task<IReadOnlyList<ArticleDto>> GetArticlesAsync(string culture, string? categorySlug, CancellationToken cancellationToken)
     {
@@ -39,6 +39,7 @@ public sealed class ArticleService(QuebecInsiderDbContext db) : IArticleService
         var article = await BaseQuery(culture)
             .FirstOrDefaultAsync(article => article.Translations.Any(t => t.Culture == culture && t.Slug == slug), cancellationToken);
 
+        metrics?.RecordArticleView(culture, slug);
         return article is null ? null : Map(article, culture);
     }
 
@@ -61,6 +62,7 @@ public sealed class ArticleService(QuebecInsiderDbContext db) : IArticleService
             .OrderByDescending(article => article.PopularityScore)
             .ToListAsync(cancellationToken);
 
+        metrics?.RecordSearch(culture, normalized, articles.Count);
         return articles.Select(article => Map(article, culture)).ToList();
     }
 
