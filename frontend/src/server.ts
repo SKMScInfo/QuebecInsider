@@ -10,6 +10,9 @@ const angularApp = new AngularNodeAppEngine();
 const apiBaseUrl = (process.env['API_URL'] || 'http://localhost:5000').replace(/\/+$/, '');
 
 app.use('/api', async (req, res, next) => {
+  if (req.path === '/ssr' || req.originalUrl.startsWith('/api/ssr')) {
+    return next();
+  }
   try {
     const targetUrl = `${apiBaseUrl}${req.originalUrl}`;
     const response = await fetch(targetUrl, {
