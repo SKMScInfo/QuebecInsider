@@ -1,6 +1,4 @@
 {
-  "version": 2,
-  "public": true,
   "outputDirectory": "dist/quebec-insider-frontend/browser",
   "rewrites": [
     {
