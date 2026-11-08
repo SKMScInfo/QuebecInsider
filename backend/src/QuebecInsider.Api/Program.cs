@@ -37,6 +37,7 @@ builder.Services.AddDbContext<QuebecInsiderDbContext>(options =>
 });
 
 builder.Services.AddScoped<IArticleService, ArticleService>();
+builder.Services.AddScoped<ISnowflakeAnalyticsService, SnowflakeAnalyticsService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("LocalFrontend", policy =>

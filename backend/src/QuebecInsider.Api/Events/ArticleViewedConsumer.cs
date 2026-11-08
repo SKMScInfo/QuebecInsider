@@ -13,7 +13,8 @@ public sealed class ArticleViewedConsumer(
     IHubContext<TrendingHub> hubContext,
     QuebecInsiderMetrics metrics,
     IOutputCacheStore cacheStore,
-    ILogger<ArticleViewedConsumer> logger) : IConsumer<ArticleViewedEvent>
+    ILogger<ArticleViewedConsumer> logger,
+    ISnowflakeAnalyticsService snowflake) : IConsumer<ArticleViewedEvent>
 {
     public async Task Consume(ConsumeContext<ArticleViewedEvent> context)
     {
@@ -39,5 +40,6 @@ public sealed class ArticleViewedConsumer(
 
         var trending = await articleService.GetTrendingAsync(msg.Culture, context.CancellationToken);
         await hubContext.Clients.All.SendAsync("TrendingUpdated", trending, context.CancellationToken);
+        await snowflake.TrackArticleViewAsync(msg, context.CancellationToken);
     }
 }
