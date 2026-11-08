@@ -1,5 +1,6 @@
 # QuébecInsider.ca — Plateforme Média Bilingue Cloud-Native (.NET 10 & Angular 20 SSR)
 
+- **Site Officiel** : [https://www.quebecinsider.ca](https://www.quebecinsider.ca)
 **QuébecInsider.ca** est une application Full-Stack d'architecture **Enterprise-Grade** bilingue (`fr-CA` / `en-CA`) conçue avec **ASP.NET Core (.NET 10)**, **Angular 20 SSR**, **PostgreSQL 17**, **Redis 7**, **RabbitMQ (MassTransit)**, **SignalR**, et une observabilité complète via **OpenTelemetry, Prometheus, Grafana et Azure Application Insights**.
 
 ## 🌐 Liens Production (Live)

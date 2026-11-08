@@ -43,6 +43,8 @@ builder.Services.AddCors(options =>
         policy.SetIsOriginAllowed(origin =>
                 Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
                 (uri.Host == "localhost" ||
+                 uri.Host == "quebecinsider.ca" ||
+                 uri.Host.EndsWith(".quebecinsider.ca", StringComparison.OrdinalIgnoreCase) ||
                  uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase) ||
                  uri.Host.EndsWith(".azurecontainerapps.io", StringComparison.OrdinalIgnoreCase)))
             .AllowAnyHeader()
