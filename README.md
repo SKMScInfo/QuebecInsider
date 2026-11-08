@@ -1,62 +1,50 @@
-# QuébecInsider.ca
+# QuébecInsider.ca — Plateforme Média Bilingue Cloud-Native (.NET 10 & Angular 20 SSR)
 
-QuébecInsider.ca is a bilingual Quebec-focused digital publication for useful life hacks, savings, local services, deals, food, activities, travel, technology and everyday Quebec information.
+**QuébecInsider.ca** est une application Full-Stack d'architecture **Enterprise-Grade** bilingue (`fr-CA` / `en-CA`) conçue avec **ASP.NET Core (.NET 10)**, **Angular 20 SSR**, **PostgreSQL 17**, **Redis 7**, **RabbitMQ (MassTransit)**, **SignalR**, et une observabilité complète via **OpenTelemetry, Prometheus, Grafana et Azure Application Insights**.
 
-This repository is structured as a serious full-stack application:
+## 🌐 Liens Production (Live)
 
-```text
-frontend/   Angular, Angular Router, SSR, NgRx, SCSS
-backend/    ASP.NET Core Web API, EF Core, SignalR, Swagger
-tests/      Reserved for cross-cutting/e2e suites
-scripts/    PowerShell development automation
+- **Frontend (Vercel Edge + Angular 20 SSR)** : [https://quebec-insider.vercel.app](https://quebec-insider.vercel.app)
+- **Backend API & Swagger (Azure Container Apps)** : [https://ca-quebecinsider-api.delightfulbeach-019eb41d.westus.azurecontainerapps.io/swagger](https://ca-quebecinsider-api.delightfulbeach-019eb41d.westus.azurecontainerapps.io/swagger)
+- **Health Checks Cloud-Native** : `/health/live` & `/health/ready`
+
+## 🏗️ Architecture Système
+
+```mermaid
+flowchart LR
+    User["Lecteur / Navigateur"] --> Vercel["Vercel Edge CDN\nAngular 20 SSR + NgRx"]
+    Vercel -->|"REST /api/* + WebSockets"| API["Azure Container Apps\nASP.NET Core .NET 10 API"]
+    API <-->|"OutputCache + Tag Eviction"| Redis[("Redis 7\nDistributed Cache")]
+    API -->|"EF Core 10 + Npgsql"| Postgres[("Azure PostgreSQL 17\nFlexible Server")]
+    API -->|"Publish ArticleViewedEvent"| RMQ[["RabbitMQ / CloudAMQP\nMassTransit Bus"]]
+    RMQ -->|"Consume Async"| Worker["ArticleViewedConsumer\nBackground Worker"]
+    Worker -->|"Increment PopularityScore"| Postgres
+    Worker -->|"EvictByTag('trending')"| Redis
+    Worker -->|"Broadcast TrendingUpdated"| SignalR["SignalR TrendingHub"]
+    SignalR -->|"Temps réel"| User
+    API -->|"OTLP Metrics & Traces"| OTel["OpenTelemetry\nPrometheus + Grafana + Azure Monitor"]
 ```
 
-## Current Slice
+## 🚀 Fonctionnalités d'Ingénierie (Enterprise-Grade)
 
-- Fully separated Angular and ASP.NET Core projects.
-- Bilingual route model with `/fr`, `/en`, localized category routes and article routes.
-- Backend multilingual content architecture using `Article`, `ArticleTranslation`, `Category` and `CategoryTranslation`.
-- DTO-only API surface; EF entities are not exposed directly.
-- Seeded French and English article/category content through the backend.
-- Article list, article detail, category filtering, trending endpoint and language-aware search endpoint.
-- Reusable `Insider Tip` and newsletter components.
-- Angular SSR configuration and metadata updates for SEO.
-- Swagger/OpenAPI and SignalR hub placeholder for real-time trending updates.
-- xUnit tests covering language-aware search and translated article slug lookup.
+- **Architecture Événementielle Asynchrone (MassTransit + RabbitMQ / CloudAMQP)** : La consultation d'un article publie un `ArticleViewedEvent` non-bloquant. Le `ArticleViewedConsumer` met à jour `PopularityScore` dans PostgreSQL en arrière-plan, invalide le cache Redis (`EvictByTagAsync("trending")`) et diffuse le nouveau classement en direct via **SignalR (`TrendingHub`)**.
+- **Caching Distribué & Protection API** : **Redis OutputCache** (`.NET 10`) avec invalidation par tags (`articles`, `trending`, `categories`) et **Rate Limiting** (`FixedWindowLimiter` `429 Too Many Requests`).
+- **Sécurité & Validation** : Authentification **JWT Bearer** avec contrôle d'accès par rôle (`AdminOnly` sur `/api/admin/cache/evict`), validation stricte **FluentValidation** et erreurs normalisées **RFC 9457 (`ProblemDetails`)**.
+- **Observabilité Complète (OpenTelemetry)** : Compteurs métiers personnalisés (`quebecinsider.articles.views`, `quebecinsider.searches.count`, `quebecinsider.events.processed`), traces distribuées (HTTP $\rightarrow$ EF Core SQL), scraping **Prometheus** (`/metrics`), tableaux de bord **Grafana** auto-provisionnés et **Azure Application Insights**.
+- **DevOps, CI/CD & IaC** : Conteneurisation **Docker** multi-stage, pipeline **GitHub Actions** (`dotnet test` + publication `ghcr.io`), et Infrastructure-as-Code **Azure Bicep** (`infra/main.bicep`).
 
-## Local Setup
+## 💻 Démarrage Rapide en Local
 
-Backend:
+```bash
+# 1. Démarrer l'infrastructure Docker locale (PostgreSQL 17, Redis 7, RabbitMQ, Prometheus, Grafana)
+docker compose up -d
 
-```powershell
-dotnet restore .\QuebecInsider.sln
-dotnet run --project .\backend\src\QuebecInsider.Api
-```
+# 2. Exécuter les tests automatisés xUnit
+dotnet test QuebecInsider.sln
 
-If no SQL Server connection string is configured, the API uses an in-memory database and seeds demo content. For SQL Server Developer Edition, set `ConnectionStrings:QuebecInsider` in user secrets or environment configuration, then add EF Core migrations.
+# 3. Lancer l'API .NET 10 (http://localhost:5000/swagger & http://localhost:5295/metrics)
+dotnet run --project backend/src/QuebecInsider.Api
 
-Frontend:
-
-```powershell
-cd .\frontend
-npm install
-npm start
-```
-
-The Angular app expects the API at `http://localhost:5295/api`.
-
-## Useful URLs
-
-- Frontend: `http://localhost:4200/fr`
-- API Swagger: `http://localhost:5295/swagger`
-- French article route example: `/fr/articles/12-avantages-gratuits-quebecois`
-- English article route example: `/en/articles/12-free-perks-quebecers`
-
-## Verification
-
-```powershell
-dotnet test .\QuebecInsider.sln
-cd .\frontend
-npm test
-npm run build
+# 4. Lancer le frontend Angular 20 (http://localhost:4200/fr)
+cd frontend && npm install && npm start
 ```
