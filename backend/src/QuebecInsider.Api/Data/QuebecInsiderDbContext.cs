@@ -9,7 +9,7 @@ public sealed class QuebecInsiderDbContext(DbContextOptions<QuebecInsiderDbConte
     public DbSet<ArticleTranslation> ArticleTranslations => Set<ArticleTranslation>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<CategoryTranslation> CategoryTranslations => Set<CategoryTranslation>();
-
+    public DbSet<NewsletterSubscriber> NewsletterSubscribers => Set<NewsletterSubscriber>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Category>()
@@ -35,5 +35,9 @@ public sealed class QuebecInsiderDbContext(DbContextOptions<QuebecInsiderDbConte
             .WithOne(translation => translation.Category)
             .HasForeignKey(translation => translation.CategoryId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<NewsletterSubscriber>()
+            .HasIndex(subscriber => subscriber.Email)
+            .IsUnique();
     }
 }

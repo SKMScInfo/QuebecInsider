@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using QuebecInsider.Api.Data;
 using QuebecInsider.Api.Domain;
 using QuebecInsider.Api.Dtos;
+using MassTransit;
+using QuebecInsider.Api.Events;
 
 namespace QuebecInsider.Api.Services;
 
-public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetrics? metrics = null) : IArticleService
+public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetrics? metrics = null, IPublishEndpoint? publishEndpoint = null) : IArticleService
 {
     public async Task<IReadOnlyList<ArticleDto>> GetArticlesAsync(string culture, string? categorySlug, CancellationToken cancellationToken)
     {
@@ -38,9 +40,19 @@ public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetri
     {
         var article = await BaseQuery(culture)
             .FirstOrDefaultAsync(article => article.Translations.Any(t => t.Culture == culture && t.Slug == slug), cancellationToken);
+        if (article is null)
+        {
+            return null;
+        }
 
         metrics?.RecordArticleView(culture, slug);
-        return article is null ? null : Map(article, culture);
+        if (publishEndpoint is not null)
+        {
+            await publishEndpoint.Publish(
+                new ArticleViewedEvent(article.Id, culture, slug, DateTimeOffset.UtcNow),
+                cancellationToken);
+        }
+        return Map(article, culture);
     }
 
     public async Task<IReadOnlyList<ArticleDto>> SearchAsync(string culture, string query, CancellationToken cancellationToken)

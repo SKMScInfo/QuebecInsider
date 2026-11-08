@@ -34,5 +34,21 @@ services:
     depends_on:
       - prometheus
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: quebecinsider-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  redis:
+    image: redis:7-alpine
+    container_name: quebecinsider-redis
+    ports:
+      - "6379:6379"
+      
 volumes:
   postgres_data:
