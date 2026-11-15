@@ -7,7 +7,7 @@ using QuebecInsider.Api.Events;
 
 namespace QuebecInsider.Api.Services;
 
-public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetrics? metrics = null, IPublishEndpoint? publishEndpoint = null) : IArticleService
+public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetrics? metrics = null, IPublishEndpoint? publishEndpoint = null, IElasticsearchService? elasticsearch = null) : IArticleService
 {
     public async Task<IReadOnlyList<ArticleDto>> GetArticlesAsync(string culture, string? categorySlug, CancellationToken cancellationToken)
     {
@@ -61,6 +61,16 @@ public sealed class ArticleService(QuebecInsiderDbContext db, QuebecInsiderMetri
         if (normalized.Length == 0)
         {
             return [];
+        }
+
+        if (elasticsearch is { IsEnabled: true })
+        {
+            var esResults = await elasticsearch.SearchArticlesAsync(culture, normalized, cancellationToken);
+            if (esResults is not null)
+            {
+                metrics?.RecordSearch(culture, normalized, esResults.Count);
+                return esResults;
+            }
         }
 
         var articles = await BaseQuery(culture)

@@ -22,6 +22,7 @@ using QuebecInsider.Api.Domain;
 using QuebecInsider.Api.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
 
 builder.Services.AddDbContext<QuebecInsiderDbContext>(options =>
 {
@@ -38,6 +39,7 @@ builder.Services.AddDbContext<QuebecInsiderDbContext>(options =>
 
 builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<ISnowflakeAnalyticsService, SnowflakeAnalyticsService>();
+builder.Services.AddHttpClient<IElasticsearchService, ElasticsearchService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("LocalFrontend", policy =>
@@ -208,6 +210,14 @@ await using (var scope = app.Services.CreateAsyncScope())
             """);
     }
     await SeedData.InitializeAsync(db);
+    var es = scope.ServiceProvider.GetRequiredService<IElasticsearchService>();
+    if (es.IsEnabled)
+    {
+        var articleService = scope.ServiceProvider.GetRequiredService<IArticleService>();
+        var frArticles = await articleService.GetArticlesAsync("fr-CA", null, CancellationToken.None);
+        var enArticles = await articleService.GetArticlesAsync("en-CA", null, CancellationToken.None);
+        await es.IndexArticlesAsync(frArticles.Concat(enArticles));
+    }
 }
 
 app.UseCors("LocalFrontend");
@@ -338,16 +348,85 @@ app.MapPost("/api/auth/token", (LoginRequestDto login, IConfiguration config) =>
 })
 .WithName("GenerateAdminToken");
 
-// 2. Route protégée par JWT (Rôle Admin requis -> renvoie 401/403 sans jeton !)
-app.MapPost("/api/admin/cache/evict", async (IOutputCacheStore cacheStore, CancellationToken ct) =>
-{
-    await cacheStore.EvictByTagAsync("articles", ct);
-    await cacheStore.EvictByTagAsync("trending", ct);
-    await cacheStore.EvictByTagAsync("categories", ct);
-    return Results.Ok(new { message = "Tous les caches Redis ont été purgés par l'administrateur." });
-})
-.WithName("EvictAllCaches")
-.RequireAuthorization("AdminOnly");
+// // 2. Route protégée par JWT (Rôle Admin requis -> renvoie 401/403 sans jeton !)
+// app.MapPost("/api/admin/cache/evict", async (IOutputCacheStore cacheStore, CancellationToken ct) =>
+// {
+//     await cacheStore.EvictByTagAsync("articles", ct);
+//     await cacheStore.EvictByTagAsync("trending", ct);
+//     await cacheStore.EvictByTagAsync("categories", ct);
+//     return Results.Ok(new { message = "Tous les caches Redis ont été purgés par l'administrateur." });
+// })
+// .WithName("EvictAllCaches")
+// .RequireAuthorization("AdminOnly");
+
+// 3. Créer un nouvel article bilingue (FR + EN) en tant qu'Admin et purger le cache Redis
+// app.MapPost("/api/admin/articles", async (
+//     CreateArticleRequestDto req,
+//     QuebecInsiderDbContext db,
+//     IOutputCacheStore cacheStore,
+//     CancellationToken ct) =>
+// {
+//     var category = await db.Categories.FirstOrDefaultAsync(c => c.Key == req.CategoryKey, ct);
+//     if (category is null)
+//     {
+//         return Results.BadRequest(new { error = $"Catégorie '{req.CategoryKey}' introuvable. Valeurs possibles : money, deals, food, going-out, travel, tech, life." });
+//     }
+
+//     var article = new QuebecInsider.Api.Domain.Article
+//     {
+//         CategoryId = category.Id,
+//         ImageUrl = req.ImageUrl,
+//         AuthorName = req.AuthorName,
+//         ReadingMinutes = req.ReadingMinutes,
+//         PopularityScore = req.InitialPopularityScore,
+//         PublishedAt = DateTimeOffset.UtcNow,
+//         Translations =
+//         [
+//             new QuebecInsider.Api.Domain.ArticleTranslation
+//             {
+//                 Culture = "fr-CA",
+//                 Title = req.French.Title,
+//                 Slug = req.French.Slug,
+//                 Description = req.French.Description,
+//                 Body = req.French.Body,
+//                 SeoTitle = req.French.SeoTitle,
+//                 SeoDescription = req.French.SeoDescription,
+//                 Keywords = req.French.Keywords,
+//                 InsiderTip = req.French.InsiderTip
+//             },
+//             new QuebecInsider.Api.Domain.ArticleTranslation
+//             {
+//                 Culture = "en-CA",
+//                 Title = req.English.Title,
+//                 Slug = req.English.Slug,
+//                 Description = req.English.Description,
+//                 Body = req.English.Body,
+//                 SeoTitle = req.English.SeoTitle,
+//                 SeoDescription = req.English.SeoDescription,
+//                 Keywords = req.English.Keywords,
+//                 InsiderTip = req.English.InsiderTip
+//             }
+//         ]
+//     };
+
+//     db.Articles.Add(article);
+//     await db.SaveChangesAsync(ct);
+
+//     // Purger immédiatement le cache Redis pour que l'article apparaisse tout de suite sur le site
+//     await cacheStore.EvictByTagAsync("articles", ct);
+//     await cacheStore.EvictByTagAsync("trending", ct);
+
+//     return Results.Created($"/api/fr-CA/articles/{req.French.Slug}", new
+//     {
+//         article.Id,
+//         FrenchUrl = $"/fr/articles/{req.French.Slug}",
+//         EnglishUrl = $"/en/articles/{req.English.Slug}"
+//     });
+// })
+// .WithName("CreateArticleAdmin")
+// .RequireAuthorization("AdminOnly");
+
+app.MapControllers();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
