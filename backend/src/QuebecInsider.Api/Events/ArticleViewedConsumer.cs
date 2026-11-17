@@ -14,7 +14,9 @@ public sealed class ArticleViewedConsumer(
     QuebecInsiderMetrics metrics,
     IOutputCacheStore cacheStore,
     ILogger<ArticleViewedConsumer> logger,
-    ISnowflakeAnalyticsService snowflake) : IConsumer<ArticleViewedEvent>
+    ISnowflakeAnalyticsService snowflake,
+    IDatabricksLakehouseService? databricks = null,
+    IMongoAuditService? mongo = null) : IConsumer<ArticleViewedEvent>
 {
     public async Task Consume(ConsumeContext<ArticleViewedEvent> context)
     {
@@ -41,5 +43,15 @@ public sealed class ArticleViewedConsumer(
         var trending = await articleService.GetTrendingAsync(msg.Culture, context.CancellationToken);
         await hubContext.Clients.All.SendAsync("TrendingUpdated", trending, context.CancellationToken);
         await snowflake.TrackArticleViewAsync(msg, context.CancellationToken);
+
+        if (databricks is { IsEnabled: true })
+        {
+            await databricks.IngestBronzeEventAsync(msg, context.CancellationToken);
+        }
+
+        if (mongo is { IsEnabled: true })
+        {
+            await mongo.LogEventAsync("ArticleViewed", "reader", msg.Slug, new { msg.ArticleId, msg.Culture, NewScore = article.PopularityScore }, context.CancellationToken);
+        }
     }
 }

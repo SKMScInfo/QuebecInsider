@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuebecInsider.Api.Data;
 using QuebecInsider.Api.Domain;
 using QuebecInsider.Api.Dtos;
+using QuebecInsider.Api.Services;
 
 namespace QuebecInsider.Api.Controllers;
 
@@ -13,7 +14,10 @@ namespace QuebecInsider.Api.Controllers;
 [Authorize(Policy = "AdminOnly")]
 public sealed class AdminController(
     QuebecInsiderDbContext db,
-    IOutputCacheStore cacheStore) : ControllerBase
+    IOutputCacheStore cacheStore,
+    IElasticsearchService es,
+    IArticleService articleService,
+    IMongoAuditService mongo) : ControllerBase
 {
     // GET: api/admin/dashboard (Statistiques + Liste des abonnés Newsletter)
     [HttpGet("dashboard")]
@@ -89,6 +93,15 @@ public sealed class AdminController(
         await cacheStore.EvictByTagAsync("articles", ct);
         await cacheStore.EvictByTagAsync("trending", ct);
 
+        // Indexer immédiatement le nouvel article bilingue dans Elasticsearch
+        if (es.IsEnabled)
+        {
+            var frDto = await articleService.GetArticleAsync("fr-CA", req.French.Slug, ct);
+            var enDto = await articleService.GetArticleAsync("en-CA", req.English.Slug, ct);
+            var toIndex = new[] { frDto, enDto }.Where(x => x is not null).Cast<ArticleDto>();
+            await es.IndexArticlesAsync(toIndex, ct);
+        }
+
         return Created($"/api/fr-CA/articles/{req.French.Slug}", new
         {
             article.Id,
@@ -124,5 +137,13 @@ public sealed class AdminController(
         await cacheStore.EvictByTagAsync("trending", ct);
         await cacheStore.EvictByTagAsync("categories", ct);
         return Ok(new { message = "Tous les caches Redis ont été purgés par le contrôleur MVC Admin." });
+    }
+
+    // GET: api/admin/audit-logs (Lire les documents NoSQL depuis MongoDB)
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs(CancellationToken ct)
+    {
+        var logs = await mongo.GetRecentLogsAsync(25, ct);
+        return Ok(logs);
     }
 }

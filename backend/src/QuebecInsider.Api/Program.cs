@@ -39,7 +39,9 @@ builder.Services.AddDbContext<QuebecInsiderDbContext>(options =>
 
 builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<ISnowflakeAnalyticsService, SnowflakeAnalyticsService>();
+builder.Services.AddHttpClient<IDatabricksLakehouseService, DatabricksLakehouseService>();
 builder.Services.AddHttpClient<IElasticsearchService, ElasticsearchService>();
+builder.Services.AddSingleton<IMongoAuditService, MongoAuditService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("LocalFrontend", policy =>
